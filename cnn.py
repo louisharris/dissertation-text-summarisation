@@ -16,7 +16,6 @@ from gensim.models.word2vec import Word2Vec
 import os
 import copy
 from text_cnn import TextCNN
-from train import Train
 
 from tensorflow.python.platform.flags import FLAGS
 
@@ -24,9 +23,8 @@ from tensorflow.python.platform.flags import FLAGS
 class Preprocess(object):
 
     def __init__(
-            self, train_filepaths, test_filepaths):
-        self.train_filepaths = train_filepaths
-        self.test_filepaths = test_filepaths
+            self, filepaths):
+        self.filepaths = filepaths
 
 
     @staticmethod
@@ -46,7 +44,7 @@ class Preprocess(object):
     def get_doc_sentence_map(self):
 
         doc_catalog = []
-        for filepath in self.train_filepaths:
+        for filepath in self.filepaths:
             for filename in os.listdir(filepath):
                 if filename.endswith(".xml"):
                     file = open(filepath + filename)
@@ -172,23 +170,34 @@ def main():
 
     model = gensim.models.KeyedVectors.load_word2vec_format('./model/GoogleNews-vectors-negative300.bin',
                                                             binary=True)
-    prep = Preprocess(train_filepaths=train_filepaths, test_filepaths=test_filepaths)
-    vec_sal_map = Preprocess.get_vec_salience_map(prep, model)
-    print(len(vec_sal_map))
+    prep_train = Preprocess(filepaths=train_filepaths)
+    train_vec_sal_map = Preprocess.get_vec_salience_map(prep_train, model)
+    prep_test = Preprocess(filepaths=test_filepaths)
+    test_vec_sal_map = Preprocess.get_vec_salience_map(prep_test, model)
+    print(len(train_vec_sal_map))
+    print(len(test_vec_sal_map))
 
-    x_train = []
-    x_labels = []
-    for doc in vec_sal_map:
-        for sent in vec_sal_map[doc]:
-            x_train.append(sent[0])
-            x_labels.append(sent[1])
+    train_data = []
+    train_labels = []
+    for doc in train_vec_sal_map:
+        for sent in train_vec_sal_map[doc]:
+            train_data.append(sent[0])
+            train_labels.append(sent[1])
 
-    print(len(x_train))
-    print(len(x_labels[0]))
-    exit()
+    test_data = []
+    test_labels = []
+    for doc in test_vec_sal_map:
+        for sent in test_vec_sal_map[doc]:
+            test_data.append(sent[0])
+            test_labels.append(sent[1])
 
-    cnn = Train
-    cnn.start_session()
+    print(len(test_data))
+    print(len(test_labels))
+    print(len(train_data))
+    print(len(train_labels))
+
+
+    cnn = TextCNN(train=(train_data, train_labels), test=(test_data, test_labels), sequence_length=len(test_data), num_filters=300, kernel_size=3)
 
 
     # We've now pre process the documents, so now we can feed into the CNN
