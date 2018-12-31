@@ -191,16 +191,20 @@ def main():
             test_data.append(sent[0])
             test_labels.append(sent[1])
 
-    print(len(test_data))
-    print(len(test_labels))
-    print(len(train_data))
-    print(len(train_labels))
-
-
-    cnn = TextCNN(train=(train_data, train_labels), test=(test_data, test_labels), sequence_length=len(test_data), num_filters=300, kernel_size=3)
+    train_data = np.asarray(train_data)
+    train_labels = np.asarray(train_labels)
+    print(train_data.shape)
+    print(train_labels.shape)
+    test_data = np.asarray(test_data)
+    print(test_data.shape)
+    test_labels = np.asarray(test_labels)
+    print(test_labels.shape)
 
 
     # We've now pre process the documents, so now we can feed into the CNN
+
+    cnn = TextCNN(train_data=train_data, train_labels=train_labels, test_data=test_data, test_labels=test_labels,
+                  sequence_length=len(test_data), num_filters=300, kernel_size=3)
 
 
 if __name__ == '__main__':
