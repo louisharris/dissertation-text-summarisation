@@ -140,6 +140,7 @@ class Preprocess(object):
             for sent in sentence_tokens[doc]:
                 while len(sent) < max_token_count:
                     sent.append('<PAD>')
+
         return sentence_tokens
 
     # This returns the MAP<DOC, [(VECTOR, SCORE)]>
@@ -184,27 +185,30 @@ def main():
             train_data.append(sent[0])
             train_labels.append(sent[1])
 
+    for x in range(0, 10):
+        print(len(train_data[x]))
+    print(len(train_data))
+
     test_data = []
     test_labels = []
     for doc in test_vec_sal_map:
         for sent in test_vec_sal_map[doc]:
             test_data.append(sent[0])
             test_labels.append(sent[1])
-
-    train_data = np.asarray(train_data)
-    train_labels = np.asarray(train_labels)
-    print(train_data.shape)
-    print(train_labels.shape)
-    test_data = np.asarray(test_data)
-    print(test_data.shape)
-    test_labels = np.asarray(test_labels)
-    print(test_labels.shape)
+    for y in range(0,10):
+        print(len(test_data[y]))
+    print(len(test_data))
+    exit()
+    train_data = np.asarray(train_data, dtype=np.float16)
+    train_labels = np.asarray(train_labels, dtype=np.float16)
+    test_data = np.asarray(test_data, dtype=np.float16)
+    test_labels = np.asarray(test_labels, dtype=np.float16)
 
 
     # We've now pre process the documents, so now we can feed into the CNN
 
     cnn = TextCNN(train_data=train_data, train_labels=train_labels, test_data=test_data, test_labels=test_labels,
-                  sequence_length=len(test_data), num_filters=300, kernel_size=3)
+                  num_filters=300, kernel_size=3)
 
 
 if __name__ == '__main__':

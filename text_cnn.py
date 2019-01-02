@@ -4,7 +4,7 @@ from datetime import time
 import tensorflow as tf
 import numpy as np
 from keras.callbacks import TensorBoard
-from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten, Dropout
+from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.constraints import UnitNorm
 from keras import Sequential
 from sklearn.datasets import make_blobs
@@ -17,7 +17,7 @@ class TextCNN(object):
     """
 
     def __init__(
-            self, train_data, train_labels, test_data, test_labels, sequence_length, num_filters, kernel_size):
+            self, train_data, train_labels, test_data, test_labels, num_filters, kernel_size):
 
         #X, y = make_blobs(n_samples=1000, centers=2, n_features=300, random_state=1)
         #X_test, y_test = make_blobs(n_samples=1000, centers=2, n_features=300, random_state=1)
@@ -32,17 +32,18 @@ class TextCNN(object):
         print(train_labels.shape)
         print(test_data.shape)
         print(test_labels.shape)
-        exit()
+
+
         # Adding Keras layers to fit the model
         print("adding layers to fit model")
         model = Sequential()
-        model.add(Conv1D(filters=400, kernel_size=3, strides=1, padding='valid',
+        model.add(Conv2D(filters=num_filters, kernel_size=(kernel_size, 300), strides=1, padding='valid',
                          data_format='channels_last', dilation_rate=1, activation=tf.nn.sigmoid,
                          use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
                          kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None,
-                         kernel_constraint=None, bias_constraint=None, input_shape=(train_data.shape[1], 1)))
+                         kernel_constraint=None, bias_constraint=None, input_shape=(train_data.shape[1], train_data.shape[2], 1)))
         print("input shape", model.input_shape)
-        model.add(MaxPooling1D(pool_size=298, strides=1, padding='valid',
+        model.add(MaxPooling2D(pool_size=(train_data.shape[1] - kernel_size + 1, 1), strides=1, padding='valid',
                                data_format='channels_last'))
         model.add(Flatten())
 
@@ -53,7 +54,6 @@ class TextCNN(object):
         # model.add(keras.activations.softmax(x=self.input_x, axis=-1))
         model.compile(optimizer='Adadelta', loss='mse')
         print(model.summary())
-
         # sess.graph contains the graph definition; that enables the Graph Visualizer.
         # file_writer = tf.summary.FileWriter('/path/to/logs', sess.graph)
 
