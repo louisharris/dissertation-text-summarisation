@@ -28,6 +28,12 @@ class TextCNN(object):
         #print(X.shape)
         #print(y.shape)
 
+
+        train_data = np.expand_dims(train_data, axis=3)
+        train_labels = np.expand_dims(train_labels, axis=1)
+        test_data = np.expand_dims(test_data, axis=3)
+        test_labels = np.expand_dims(test_labels, axis=1)
+
         print(train_data.shape)
         print(train_labels.shape)
         print(test_data.shape)
@@ -41,7 +47,7 @@ class TextCNN(object):
                          data_format='channels_last', dilation_rate=1, activation=tf.nn.sigmoid,
                          use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
                          kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None,
-                         kernel_constraint=None, bias_constraint=None, input_shape=(train_data.shape[1], train_data.shape[2], 1)))
+                         kernel_constraint=None, bias_constraint=None, batch_size=16, input_shape=(train_data.shape[1], train_data.shape[2], 1)))
         print("input shape", model.input_shape)
         model.add(MaxPooling2D(pool_size=(train_data.shape[1] - kernel_size + 1, 1), strides=1, padding='valid',
                                data_format='channels_last'))
@@ -60,5 +66,5 @@ class TextCNN(object):
         # tb = TensorBoard(log_dir="logs/{}".format(time()))
         tb = TensorBoard(log_dir='./logs'.format(time()), histogram_freq=0, write_graph=True, write_images=False)
         print("fitting model to train")
-        model.fit(train_data, train_labels, epochs=10, batch_size=None, callbacks=[tb])
+        model.fit(train_data, train_labels, epochs=10, batch_size=16, callbacks=[tb])
         print(model.evaluate(test_data, test_labels, verbose=1))
