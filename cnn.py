@@ -6,7 +6,6 @@ import math
 import nltk
 import rougescore
 import xml.etree.ElementTree as ET
-import tensorflow as tf
 from bs4 import BeautifulSoup
 import numpy as np
 import logging
@@ -16,9 +15,7 @@ from gensim.models.word2vec import Word2Vec
 import os
 import copy
 from text_cnn import TextCNN
-
-from tensorflow.python.platform.flags import FLAGS
-
+import tensorflow as tf
 
 class Preprocess(object):
 
@@ -164,6 +161,43 @@ class Preprocess(object):
         return doc_sent_vec_salience_map
 
 
+class Postprocess(object):
+
+    @staticmethod
+    def get_sentence_count(test_map):
+        doc_sent_count_map = {}
+        for doc in test_map:
+            doc_sent_count_map[doc] = (len(test_map[doc]))
+
+        return doc_sent_count_map
+
+    @staticmethod
+    def get_results(test_data, test_map):
+        #sent_count_map = Postprocess.get_sentence_count(test_map)
+        data_list = test_data.tolist()
+        doc_sent_score_map = {}
+
+        for doc in test_map:
+            doc_sent_score_map[doc] = []
+            for x in test_map[doc]:
+                doc_sent_score_map[doc].append((x, data_list.pop(0)))
+
+        for doc in doc_sent_score_map:
+            doc_sent_score_map[doc] = sorted(doc_sent_score_map[doc], key=lambda y: y[1])
+
+        for doc in doc_sent_score_map:
+            print(doc)
+            print("SWITCHAROO")
+            for tuple in doc_sent_score_map[doc]:
+                print(tuple[0])
+            exit()
+
+        return doc_sent_score_map
+
+
+
+
+
 def main():
 
     train_filepaths = ["duc2001_simplified/training/", "duc2001_simplified/testing/"]
@@ -187,21 +221,32 @@ def main():
 
     test_data = []
     test_labels = []
+
     for doc in test_vec_sal_map:
         for sent in test_vec_sal_map[doc]:
             test_data.append(sent[0])
             test_labels.append(sent[1])
+
+
 
     train_data = np.asarray(train_data, dtype=np.float16)
     train_labels = np.asarray(train_labels, dtype=np.float16)
     test_data = np.asarray(test_data, dtype=np.float16)
     test_labels = np.asarray(test_labels, dtype=np.float16)
 
+    train_data = np.expand_dims(train_data, axis=3)
+    train_labels = np.expand_dims(train_labels, axis=1)
+    test_data = np.expand_dims(test_data, axis=3)
+    test_labels = np.expand_dims(test_labels, axis=1)
 
     # We've now pre process the documents, so now we can feed into the CNN
 
-    cnn = TextCNN(train_data=train_data, train_labels=train_labels, test_data=test_data, test_labels=test_labels,
-                  num_filters=400, kernel_size=3)
+    #cnn = TextCNN(train_data=train_data, train_labels=train_labels, test_data=test_data, test_labels=test_labels,
+     #             num_filters=400, kernel_size=3)
+
+    salience_results = TextCNN.eval(train_data, train_labels)
+
+    Postprocess.get_results(salience_results, prep_test.get_doc_sentence_map())
 
 
 if __name__ == '__main__':
