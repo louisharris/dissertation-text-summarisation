@@ -17,21 +17,10 @@ class TextCNN(object):
     """
 
     def __init__(
-            self, train_data, train_labels, test_data, test_labels, num_filters, kernel_size):
-        # X, y = make_blobs(n_samples=1000, centers=2, n_features=300, random_state=1)
-        # X_test, y_test = make_blobs(n_samples=1000, centers=2, n_features=300, random_state=1)
-        # X.shape = (X.shape[0], X.shape[1], 1)
-        # y.shape = (y.shape[0], 1)
-        # X_test.shape = (X_test.shape[0], X_test.shape[1], 1)
-        # y_test.shape = (y_test.shape[0], 1)
-        # print(X.shape)
-        # print(y.shape)
+            self, train_data, train_labels, num_filters, kernel_size):
 
         print(train_data.shape)
         print(train_labels.shape)
-        print(test_data.shape)
-        print(test_labels.shape)
-
         # Adding Keras layers to fit the model
         print("adding layers to fit model")
         model = Sequential()
