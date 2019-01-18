@@ -120,6 +120,7 @@ class Preprocessing(object):
                                     .replace("</text>", " ").replace("\n", " "))
 
                         text = ''.join(text_set)
+
                         e = Entry()
                         e.dir = dir
                         e.doc = text
@@ -148,8 +149,8 @@ class Preprocessing(object):
                 input_sent = nltk.word_tokenize(s)
                 summary_sents = nltk.word_tokenize(entry.summary)
 
-                rouge1 = rougescore.rouge_1(input_sent, summary_sents, 0.5)
-                rouge2 = rougescore.rouge_2(input_sent, summary_sents, 0.5)
+                rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
+                rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
 
                 salience_score = alpha * rouge1 + (1 - alpha) * rouge2
 
@@ -169,8 +170,8 @@ class Preprocessing(object):
                 train_data.append(data_val)
                 train_labels.append(label_val)
 
-        train_data = np.asarray(train_data, dtype=np.float16)
-        train_labels = np.asarray(train_labels, dtype=np.float16)
+        train_data = np.asarray(train_data, dtype=np.float32)
+        train_labels = np.asarray(train_labels, dtype=np.float32)
 
         train_data = np.expand_dims(train_data, axis=3)
         train_labels = np.expand_dims(train_labels, axis=1)

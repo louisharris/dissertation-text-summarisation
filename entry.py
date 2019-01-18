@@ -9,3 +9,5 @@ class Entry(object):
         self.summary = None
         self.saliences = None
         self.output = None
+        self.generated_sum = None
+        self.rouge_scores = None
