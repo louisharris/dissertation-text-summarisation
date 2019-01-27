@@ -5,6 +5,7 @@ class Entry(object):
         self.doc_id = None
         self.doc = None
         self.sentences = None
+        self.parsed_sentences = None
         self.vectors = None
         self.summary = None
         self.saliences = None

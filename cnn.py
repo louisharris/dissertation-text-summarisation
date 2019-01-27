@@ -101,9 +101,6 @@ class Postprocess(object):
     def get_summary_sentences(word_count):
 
         for entry in Preprocessing.train_entries:
-            print(entry.saliences)
-        exit()
-        for entry in Preprocessing.train_entries:
             sentences = entry.output
             count = word_count
             new_output = []
@@ -147,13 +144,17 @@ def main():
     Preprocessing.read_files()
     Preprocessing.get_salience_scores(0.5)
 
-    train_data, train_labels = Preprocessing.get_cnn_vectors()
-
+    train_data, train_labels, test_data, test_labels = Preprocessing.get_cnn_vectors()
     # We've now pre process the documents, so now we can feed into the CNN
 
-    #cnn = TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=3)
+    print(len(train_data))
+    print(len(train_labels))
+    print(train_data[0])
 
-    salience_results = TextCNN.eval(train_data, train_labels)
+
+    #cnn = TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=3)
+    #exit()
+    salience_results = TextCNN.eval(test_data, test_labels)
     Postprocess.get_results(salience_results)
     Postprocess.get_summary_sentences(100)
     Postprocess.return_summaries()
