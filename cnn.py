@@ -53,6 +53,7 @@ class Postprocess(object):
             for sent in e.sentences:
                 results.append((sent, salience_scores.pop(0)[0]))
             e.output = sorted(results, key=lambda y: y[1], reverse=True)
+            print(e.output)
 
         Preprocessing.train_entries = entries
 
@@ -149,8 +150,6 @@ def main():
 
     print(len(train_data))
     print(len(train_labels))
-    print(train_data[0])
-
 
     #cnn = TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=3)
     #exit()

@@ -273,7 +273,6 @@ class Preprocessing(object):
                 rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
 
                 salience_score = alpha * rouge1 + (1 - alpha) * rouge2
-
                 salience_scores.append(salience_score)
 
             entry.saliences = salience_scores

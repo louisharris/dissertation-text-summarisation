@@ -25,13 +25,13 @@ class TextCNN(object):
         print("adding layers to fit model")
         model = Sequential()
         model.add(Conv2D(filters=num_filters, kernel_size=(kernel_size, 300), strides=1, padding='valid',
-                         data_format='channels_last', dilation_rate=1, activation=tf.nn.sigmoid,
+                         data_format='channels_last', dilation_rate=1, activation=tf.nn.relu,
                          use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
                          kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None,
                          kernel_constraint=None, bias_constraint=None, batch_size=None,
                          input_shape=(train_data.shape[1], train_data.shape[2], 1)))
         print("input shape", model.input_shape)
-        model.add(MaxPooling2D(pool_size=(train_data.shape[1] - kernel_size + 1, 1), strides=1, padding='valid',
+        model.add(MaxPooling2D(pool_size=(train_data.shape[1] - (kernel_size - 1), 1), strides=1, padding='valid',
                                data_format='channels_last'))
         model.add(Flatten())
 
@@ -39,8 +39,7 @@ class TextCNN(object):
         model.add(Dense(1, activation='sigmoid', use_bias=True, kernel_constraint=UnitNorm(axis=0)))
 
         print("output shape", model.output_shape)
-        # model.add(keras.activations.softmax(x=self.input_x, axis=-1))
-        model.compile(optimizer='Adadelta', loss='mse')
+        model.compile(optimizer='Adadelta', loss='binary_crossentropy')
         print(model.summary())
         # sess.graph contains the graph definition; that enables the Graph Visualizer.
 
