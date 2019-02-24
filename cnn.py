@@ -55,7 +55,6 @@ class Postprocess(object):
                 results.append((sent, salience_scores.pop(0)[0]))
             e.output = sorted(results, key=lambda y: y[1], reverse=True)
 
-
         Preprocessing.test_entries = entries
 
     @staticmethod
@@ -98,7 +97,6 @@ class Postprocess(object):
 
             entry.rouge_scores = ((recall + precision) / 2, (recall_big + precision_big) / 2)
 
-
     @staticmethod
     def get_summary_sentences(word_count):
 
@@ -106,12 +104,12 @@ class Postprocess(object):
             sentences = entry.output
             count = word_count
             new_output = []
-            for tuple in sentences:
-                length = len(nltk.word_tokenize(tuple[0]))
+            for tup in sentences:
+                length = len(nltk.word_tokenize(tup[0]))
                 if count < 0:
                     break
                 else:
-                    new_output.append(tuple)
+                    new_output.append(tup)
                     count -= length
 
             entry.output = new_output
@@ -163,11 +161,6 @@ def main():
     Postprocess.get_summary_sentences(100)
     Postprocess.return_summaries()
     Postprocess.calculate_rouge(0.5)
-
-    #for x in range(len(Preprocessing.train_entries)):
-        #print(Preprocessing.test_entries[x].generated_sum)
-        #print()
-
 
     mean_rouge = []
     for entry in Preprocessing.test_entries:

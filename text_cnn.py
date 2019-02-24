@@ -65,5 +65,4 @@ class TextCNN(object):
 
         model = tf.keras.models.load_model("trained_model")
         results = model.predict(test_data, batch_size=1, verbose=1)
-        print(results)
         return results

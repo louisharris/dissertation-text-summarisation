@@ -2,6 +2,7 @@ import gensim
 import numpy as np
 import os
 import re
+import copy
 
 import nltk
 from bs4 import BeautifulSoup
@@ -63,12 +64,13 @@ class Preprocessing(object):
 
     @staticmethod
     def pad_sentence(sent, max_sent_len):
-        diff = max_sent_len - len(sent)
+        new_sent = copy.copy(sent)
+        diff = max_sent_len - len(new_sent)
         while diff > 0:
             diff -= 1
-            sent.append("<PAD>")
+            new_sent.append("<PAD>")
 
-        return sent
+        return new_sent
 
     @staticmethod
     def get_max_length(entries):
@@ -237,7 +239,6 @@ class Preprocessing(object):
 
                         test_entries.append(e)
 
-
         for entry in train_entries:
             for sum in train_summaries:
                 if entry.doc_id == sum[0]:
@@ -264,8 +265,6 @@ class Preprocessing(object):
         test_entries = Preprocessing.get_sent_vectors(test_entries, max_sent_length)
         Preprocessing.train_entries = train_entries
         Preprocessing.test_entries = test_entries
-
-
 
     @staticmethod
     def get_salience_scores(alpha):
@@ -311,7 +310,6 @@ class Preprocessing(object):
                 salience_scores.append(salience_score)
 
             entry.saliences = salience_scores
-
 
     @staticmethod
     def get_cnn_vectors():
