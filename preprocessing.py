@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from rougescore import rougescore
 from nltk.corpus import stopwords
 from entry import Entry
+from nltk.stem import PorterStemmer
 
 
 class Preprocessing(object):
@@ -16,13 +17,17 @@ class Preprocessing(object):
     sum_paths = ["duc2001_simplified/testing/summaries"]
     doc_paths_test = ["duc2002_simplified/data/"]
     sum_paths_test = ["duc2002_simplified/summaries"]
-    model = gensim.models.KeyedVectors.load_word2vec_format('./model/GoogleNews-vectors-negative300.bin',
-                                                            binary=True)
-    train_entries = None
-    test_entries = None
+    model = gensim.models.KeyedVectors.load_word2vec_format('./model/GoogleNews-vectors-negative300.bin', binary=True)
+
+    def __init__(self, stem):
+        self.stem = stem
+        self.train_entries = None
+        self.test_entries = None
 
     @staticmethod
     def get_train_summaries():
+        # Gets the relevant summary to the train sentenes
+
         summaries = []
         for filepath in Preprocessing.sum_paths:
             for dir in sorted(os.listdir(filepath)):
@@ -44,6 +49,8 @@ class Preprocessing(object):
 
     @staticmethod
     def get_test_summaries():
+        # Aquires the relevant summary to the test sentence
+
         summaries = []
         for filepath in Preprocessing.sum_paths_test:
             for dir in sorted(os.listdir(filepath)):
@@ -74,6 +81,7 @@ class Preprocessing(object):
 
     @staticmethod
     def get_max_length(entries):
+        # Finds the token length of the longest sentence
 
         # Loads words and pads
         tokenised_sentences = []
@@ -89,6 +97,7 @@ class Preprocessing(object):
 
     @staticmethod
     def get_sent_vectors(entries, max_sent_length):
+        # Uses Word2Vec to get list of sentence vectors from words
 
         zero_vector = np.zeros(300)
 
@@ -114,6 +123,8 @@ class Preprocessing(object):
 
     @staticmethod
     def cut_sentences(train_entries, test_entries):
+        # Cuts sentences larger than 150 long to filter out anomalies
+
         new_train = []
         new_test = []
         for entry in train_entries:
@@ -133,11 +144,13 @@ class Preprocessing(object):
 
         return new_train, new_test
 
-    @staticmethod
-    def parse_sentences(train_entries, test_entries):
+    def parse_sentences(self, train_entries, test_entries):
+        # Filters sentences to include useful words only
+
         stop_words = set(stopwords.words('english'))
+        ps = PorterStemmer()
 
-        for e in train_entries:
+        for e in train_entries + test_entries:
             parsed_sents = []
             for s in e.sentences:
                 words = nltk.word_tokenize(s)
@@ -145,26 +158,17 @@ class Preprocessing(object):
                 words = list(filter(lambda x: x is not '.', words))
                 words = list(filter(lambda x: x is not ';', words))
                 words = list(filter(lambda x: x is not ',', words))
+                if self.stem:
+                    words = list(map(lambda x: ps.stem(x), words))
 
                 parsed_sents.append(words)
-                e.parsed_sentences = parsed_sents
 
-        for e in test_entries:
-            parsed_sents = []
-            for s in e.sentences:
-                words = nltk.word_tokenize(s)
-                words = list(filter(lambda x: x not in stop_words, words))
-                words = list(filter(lambda x: x is not '.', words))
-                words = list(filter(lambda x: x is not ';', words))
-                words = list(filter(lambda x: x is not ',', words))
-
-                parsed_sents.append(words)
-                e.parsed_sentences = parsed_sents
+            e.parsed_sentences = parsed_sents
 
         return train_entries, test_entries
 
-    @staticmethod
-    def read_files():
+    def read_files(self):
+        # Reads from documents to process into files.
 
         train_entries = []
         test_entries = []
@@ -236,7 +240,6 @@ class Preprocessing(object):
                         e.doc = text
                         e.doc_id = docref
                         e.sentences = sentences
-
                         test_entries.append(e)
 
         for entry in train_entries:
@@ -258,38 +261,19 @@ class Preprocessing(object):
                 test_entries.remove(entry)
 
         train_entries, test_entries = Preprocessing.cut_sentences(train_entries, test_entries)
-        train_entries, test_entries = Preprocessing.parse_sentences(train_entries, test_entries)
+        self.parse_sentences(train_entries, test_entries)
         max_sent_length = Preprocessing.get_max_length(train_entries + test_entries)
 
         train_entries = Preprocessing.get_sent_vectors(train_entries, max_sent_length)
         test_entries = Preprocessing.get_sent_vectors(test_entries, max_sent_length)
-        Preprocessing.train_entries = train_entries
-        Preprocessing.test_entries = test_entries
+        self.train_entries = train_entries
+        self.test_entries = test_entries
 
-    @staticmethod
-    def get_salience_scores(alpha):
+    def get_salience_scores(self, alpha):
+        # Calculates the similarity between each sentence and their respective training summary
 
         stop_words = set(stopwords.words('english'))
-        for entry in Preprocessing.train_entries:
-            sentences = entry.parsed_sentences
-            salience_scores = []
-            summary_sents = nltk.word_tokenize(entry.summary)
-            # Removing stop words
-            summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
-            summary_sents = list(filter(lambda x: x is not '.', summary_sents))
-            summary_sents = list(filter(lambda x: x is not ';', summary_sents))
-            summary_sents = list(filter(lambda x: x is not ',', summary_sents))
-
-            for input_sent in sentences:
-                rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
-                rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
-
-                salience_score = alpha * rouge1 + (1 - alpha) * rouge2
-                salience_scores.append(salience_score)
-
-            entry.saliences = salience_scores
-
-        for entry in Preprocessing.test_entries:
+        for entry in self.train_entries:
             sentences = entry.parsed_sentences
             salience_scores = []
 
@@ -306,24 +290,47 @@ class Preprocessing(object):
                 rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
 
                 salience_score = alpha * rouge1 + (1 - alpha) * rouge2
-
                 salience_scores.append(salience_score)
 
             entry.saliences = salience_scores
 
-    @staticmethod
-    def get_cnn_vectors():
+        for entry in self.test_entries:
+            sentences = entry.parsed_sentences
+            salience_scores = []
+
+            summary_sents = nltk.word_tokenize(entry.summary)
+            # Removing stop words
+            summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
+            summary_sents = list(filter(lambda x: x is not '.', summary_sents))
+            summary_sents = list(filter(lambda x: x is not ';', summary_sents))
+            summary_sents = list(filter(lambda x: x is not ',', summary_sents))
+
+            for input_sent in sentences:
+
+                rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
+                rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
+
+                salience_score = alpha * rouge1 + (1 - alpha) * rouge2
+                salience_scores.append(salience_score)
+
+            entry.saliences = salience_scores
+
+    def get_cnn_vectors(self):
+        # Gets the training vectors in a useful manner to input into the CNN
+
         train_data = []
         train_labels = []
         test_data = []
         test_labels = []
-
-        for entry in Preprocessing.train_entries:
+        for entry in self.train_entries:
             for x in range(len(entry.vectors)):
                 data_val = entry.vectors[x]
                 label_val = entry.saliences[x]
                 train_data.append(data_val)
                 train_labels.append(label_val)
+
+        print(np.shape(train_data))
+        print(np.shape(train_labels))
 
         train_data = np.asarray(train_data, dtype=np.float32)
         train_labels = np.asarray(train_labels, dtype=np.float32)
@@ -331,14 +338,17 @@ class Preprocessing(object):
         train_data = np.expand_dims(train_data, axis=3)
         train_labels = np.expand_dims(train_labels, axis=1)
 
-        for entry in Preprocessing.test_entries:
+        for entry in self.test_entries:
             for x in range(len(entry.vectors)):
                 data_val = entry.vectors[x]
                 label_val = entry.saliences[x]
                 test_data.append(data_val)
                 test_labels.append(label_val)
 
-        test_data = np.asarray(test_data, dtype=np.float32)
+        #print(np.shape(test_data))
+        #print(np.shape(test_labels))
+
+        test_data = np.asarray(list(test_data), dtype=np.float32)
         test_labels = np.asarray(test_labels, dtype=np.float32)
 
         test_data = np.expand_dims(test_data, axis=3)

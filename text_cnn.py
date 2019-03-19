@@ -29,11 +29,12 @@ class TextCNN(object):
                          data_format='channels_last', dilation_rate=1, activation='relu',
                          use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
                          kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None,
-                         kernel_constraint=None, bias_constraint=None, batch_size=1,
+                         kernel_constraint=None, bias_constraint=None, batch_size=None,
                          input_shape=(train_data.shape[1], train_data.shape[2], 1)))
         print("input shape", model.input_shape)
         model.add(MaxPooling2D(pool_size=(train_data.shape[1] - (kernel_size - 1), 1), strides=1, padding='valid',
                                data_format='channels_last'))
+
         model.add(Flatten())
 
         model.add(Dropout(0.5))
@@ -44,11 +45,10 @@ class TextCNN(object):
         model.compile(optimizer=ada, loss='binary_crossentropy', metrics=['accuracy'])
         print(model.summary())
         # sess.graph contains the graph definition; that enables the Graph Visualizer.
-
         # tb = TensorBoard(log_dir="logs/{}".format(time()))
         tb = TensorBoard(log_dir='./logs'.format(time()), histogram_freq=0, write_graph=True, write_images=False)
         print("fitting model to train")
-        model.fit(train_data, train_labels, epochs=10, batch_size=1, callbacks=[tb])
+        model.fit(train_data, train_labels, epochs=10, batch_size=None, callbacks=[tb])
 
         tf.keras.backend.get_session().run(tf.global_variables_initializer())
 
@@ -64,5 +64,5 @@ class TextCNN(object):
     def eval(test_data, test_labels):
 
         model = tf.keras.models.load_model("trained_model")
-        results = model.predict(test_data, batch_size=1, verbose=1)
+        results = model.predict(test_data, batch_size=None, verbose=1)
         return results

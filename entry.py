@@ -11,4 +11,8 @@ class Entry(object):
         self.saliences = None
         self.output = None
         self.generated_sum = None
-        self.rouge_scores = None
+        self.text_rank_sum = None
+        self.control_sum = None
+        self.rouge_scores_cnn = None
+        self.rouge_scores_tr = None
+        self.rouge_scores_control = None
