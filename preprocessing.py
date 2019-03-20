@@ -130,14 +130,14 @@ class Preprocessing(object):
         for entry in train_entries:
             cut_sents = []
             for sent in entry.sentences:
-                if len(sent) < 150:
+                if len(nltk.word_tokenize(sent)) < 150:
                     cut_sents.append(sent)
             entry.sentences = cut_sents
             new_train.append(entry)
         for entry in test_entries:
             cut_sents = []
             for sent in entry.sentences:
-                if len(sent) < 150:
+                if len(nltk.word_tokenize(sent)) < 150:
                     cut_sents.append(sent)
             entry.sentences = cut_sents
             new_test.append(entry)
@@ -294,26 +294,26 @@ class Preprocessing(object):
 
             entry.saliences = salience_scores
 
-        for entry in self.test_entries:
-            sentences = entry.parsed_sentences
-            salience_scores = []
-
-            summary_sents = nltk.word_tokenize(entry.summary)
-            # Removing stop words
-            summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
-            summary_sents = list(filter(lambda x: x is not '.', summary_sents))
-            summary_sents = list(filter(lambda x: x is not ';', summary_sents))
-            summary_sents = list(filter(lambda x: x is not ',', summary_sents))
-
-            for input_sent in sentences:
-
-                rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
-                rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
-
-                salience_score = alpha * rouge1 + (1 - alpha) * rouge2
-                salience_scores.append(salience_score)
-
-            entry.saliences = salience_scores
+        # for entry in self.test_entries:
+        #     sentences = entry.parsed_sentences
+        #     salience_scores = []
+        #
+        #     summary_sents = nltk.word_tokenize(entry.summary)
+        #     # Removing stop words
+        #     summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
+        #     summary_sents = list(filter(lambda x: x is not '.', summary_sents))
+        #     summary_sents = list(filter(lambda x: x is not ';', summary_sents))
+        #     summary_sents = list(filter(lambda x: x is not ',', summary_sents))
+        #
+        #     for input_sent in sentences:
+        #
+        #         rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
+        #         rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
+        #
+        #         salience_score = alpha * rouge1 + (1 - alpha) * rouge2
+        #         salience_scores.append(salience_score)
+        #
+        #     entry.saliences = salience_scores
 
     def get_cnn_vectors(self):
         # Gets the training vectors in a useful manner to input into the CNN
@@ -321,7 +321,7 @@ class Preprocessing(object):
         train_data = []
         train_labels = []
         test_data = []
-        test_labels = []
+        #test_labels = []
         for entry in self.train_entries:
             for x in range(len(entry.vectors)):
                 data_val = entry.vectors[x]
@@ -341,16 +341,16 @@ class Preprocessing(object):
         for entry in self.test_entries:
             for x in range(len(entry.vectors)):
                 data_val = entry.vectors[x]
-                label_val = entry.saliences[x]
+                #label_val = entry.saliences[x]
                 test_data.append(data_val)
-                test_labels.append(label_val)
+                #test_labels.append(label_val)
 
         #print(np.shape(test_data))
         #print(np.shape(test_labels))
 
         test_data = np.asarray(list(test_data), dtype=np.float32)
-        test_labels = np.asarray(test_labels, dtype=np.float32)
+        #test_labels = np.asarray(test_labels, dtype=np.float32)
 
         test_data = np.expand_dims(test_data, axis=3)
-        test_labels = np.expand_dims(test_labels, axis=1)
-        return train_data, train_labels, test_data, test_labels
+        #test_labels = np.expand_dims(test_labels, axis=1)
+        return train_data, train_labels, test_data

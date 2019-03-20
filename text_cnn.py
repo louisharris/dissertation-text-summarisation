@@ -59,9 +59,8 @@ class TextCNN(object):
             include_optimizer=True
         )
 
-
     @staticmethod
-    def eval(test_data, test_labels):
+    def eval(test_data):
 
         model = tf.keras.models.load_model("trained_model")
         results = model.predict(test_data, batch_size=None, verbose=1)

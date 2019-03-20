@@ -45,7 +45,13 @@ class Main(object):
                 if count < 0:
                     break
                 else:
-                    summary += sent
+                    index = None
+                    for i in range(len(sent)):
+                        if sent[i].isalnum():
+                            index = i
+                            break
+                    new_sent = sent[index:]
+                    summary += new_sent + " "
                     count -= length
 
             return summary
@@ -69,11 +75,10 @@ class Main(object):
 
     def evaluate(self, train):
 
-        train_data, train_labels, test_data, test_labels = self.pre.get_cnn_vectors()
+        train_data, train_labels, test_data = self.pre.get_cnn_vectors()
         # We've now pre process the documents, so now we can feed into the CNN
 
         print(len(test_data))
-        print(len(test_labels))
 
         if train:
             TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=3)
@@ -81,7 +86,7 @@ class Main(object):
 
             print("generating salience results...")
 
-            gen_salience_results = TextCNN.eval(test_data, test_labels)
+            gen_salience_results = TextCNN.eval(test_data)
             print(gen_salience_results)
 
             print("post-processing results...")
@@ -96,7 +101,7 @@ class Main(object):
             print("calculating rouge scores...")
 
             self.post.calculate_rouge(0.5)
-
+            return
             mean_rouge_cnn = []
             for entry in self.pre.test_entries:
                 mean_rouge_cnn.append(entry.rouge_scores_cnn)

@@ -20,6 +20,8 @@ from entry import Entry
 import tensorflow as tf
 from preprocessing import Preprocessing
 from nltk.stem import PorterStemmer
+from pyrouge import Rouge155
+import os
 
 
 
@@ -62,67 +64,79 @@ class Postprocess(object):
 
     def calculate_rouge(self, alpha):
         ps = PorterStemmer()
+        r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
 
-        for entry in self.pre.test_entries:
+        r.system_dir = 'system_summaries'
+        r.model_dir = 'model_summaries'
+        r.system_filename_pattern = 'system_sum.(\d+).txt'
+        r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
 
-            original_sum = nltk.word_tokenize(entry.summary)
-            original_sum_stemmed = [ps.stem(x) for x in original_sum]
+        # Calculating ROUGE for CNN
+        list(map(os.unlink, (os.path.join("model_summaries", f) for f in os.listdir("model_summaries"))))
+        list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
 
-            # Generate ROUGE scores for CNN
+        for x in range(len(self.pre.test_entries)):
+            entry = self.pre.test_entries[x]
+            model_sum = entry.summary
 
-            generated_sum = nltk.word_tokenize(entry.generated_sum)
-            generated_sum_stemmed = [ps.stem(x) for x in generated_sum]
+            sentences = nltk.sent_tokenize(model_sum)
+            file = open("model_summaries/model_sum.A."+str(x)+".txt", "w+")
+            for s in sentences:
+                file.write(s+"\n")
+            file.close()
 
-            rouge1 = rougescore.rouge_1(generated_sum_stemmed, [original_sum_stemmed], alpha)
-            rouge2 = rougescore.rouge_2(generated_sum_stemmed, [original_sum_stemmed], alpha)
+            sentences = nltk.sent_tokenize(entry.generated_sum)
+            file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
+            for s in sentences:
+                file.write(s+"\n")
+            file.close()
 
-            entry.rouge_scores_cnn = (rouge1, rouge2)
+        results_cnn = r.convert_and_evaluate()
 
-            # Generate ROUGE scores for TextRank
-            generated_sum = nltk.word_tokenize(entry.text_rank_sum)
-            generated_sum_stemmed = [ps.stem(x) for x in generated_sum]
+        # Calculating ROUGE for TextRank
+        list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+        r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
 
-            rouge1 = rougescore.rouge_1(generated_sum_stemmed, [original_sum_stemmed], alpha)
-            rouge2 = rougescore.rouge_2(generated_sum_stemmed, [original_sum_stemmed], alpha)
+        r.system_dir = 'system_summaries'
+        r.model_dir = 'model_summaries'
+        r.system_filename_pattern = 'system_sum.(\d+).txt'
+        r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
 
-            entry.rouge_scores_tr = (rouge1, rouge2)
+        for x in range(len(self.pre.test_entries)):
+            entry = self.pre.test_entries[x]
 
-            # Generate ROUGE scores for control case
-            generated_sum = nltk.word_tokenize(entry.control_sum)
-            generated_sum_stemmed = [ps.stem(x) for x in generated_sum]
+            sentences = nltk.sent_tokenize(entry.text_rank_sum)
+            file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
+            for s in sentences:
+                file.write(s+"\n")
+            file.close()
 
-            rouge1 = rougescore.rouge_1(generated_sum_stemmed, [original_sum_stemmed], alpha)
-            rouge2 = rougescore.rouge_2(generated_sum_stemmed, [original_sum_stemmed], alpha)
+        results_tr = r.convert_and_evaluate()
 
-            entry.rouge_scores_control = (rouge1, rouge2)
 
-    def calculate_rouge_alt(self):
-        for entry in self.pre.train_entries:
-            original_sum = nltk.word_tokenize(entry.summary)
-            generated_sum = nltk.word_tokenize(entry.generated_sum)
+        # Calculating ROUGE for control case
+        list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+        r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
 
-            bigram_orig = list(nltk.bigrams(original_sum))
-            bigram_gen = list(nltk.bigrams(generated_sum))
+        r.system_dir = 'system_summaries'
+        r.model_dir = 'model_summaries'
+        r.system_filename_pattern = 'system_sum.(\d+).txt'
+        r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
 
-            count = 0
-            for word in original_sum:
-                for w in generated_sum:
-                    if word == w:
-                        count += 1
-                        break
-            recall = count / len(original_sum)
-            precision = count / len(generated_sum)
+        for x in range(len(self.pre.test_entries)):
+            entry = self.pre.test_entries[x]
 
-            count = 0
-            for word in bigram_orig:
-                for w in bigram_gen:
-                    if word == w:
-                        count += 1
-                        break
-            recall_big = count / len(bigram_orig)
-            precision_big = count / len(bigram_gen)
+            sentences = nltk.sent_tokenize(entry.control_sum)
+            file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
+            for s in sentences:
+                file.write(s+"\n")
+            file.close()
 
-            entry.rouge_scores = ((recall + precision) / 2, (recall_big + precision_big) / 2)
+        results_control = r.convert_and_evaluate()
+
+        print("\nCNN Scores:\n", results_cnn, "\n")
+        print("TextRank Scores:\n", results_tr, "\n")
+        print("Control case scores\n", results_control)
 
     def get_summary_sentences(self, word_count):
 
@@ -143,14 +157,15 @@ class Postprocess(object):
     def return_summaries(self):
         for entry in self.pre.test_entries:
             summary = ""
-            for tuple in entry.output:
-                if re.search('[a-zA-Z0-9]', tuple[0]) is not None:
+            sents = [tup[0] for tup in entry.output]
+            for sent in sents:
+                if re.search('[a-zA-Z0-9]', sent) is not None:
                     index = None
-                    for i in range(len(tuple[0])):
-                        if tuple[0][i].isalnum():
+                    for i in range(len(sent)):
+                        if sent[i].isalnum():
                             index = i
                             break
-                    new_sent = tuple[0][index:]
+                    new_sent = sent[index:]
                     summary += new_sent + " "
             entry.generated_sum = summary
 

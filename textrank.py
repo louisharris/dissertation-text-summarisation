@@ -33,12 +33,19 @@ class TextRank(object):
 
         count = word_count
         summary = ""
-        for tup in sorted_list:
-            length = len(nltk.word_tokenize(tup[0]))
+        sents = [tup[0] for tup in sorted_list]
+        for sent in sents:
+            length = len(nltk.word_tokenize(sent))
             if count < 0:
                 break
             else:
-                summary += tup[0]
+                index = None
+                for i in range(len(sent)):
+                    if sent[i].isalnum():
+                        index = i
+                        break
+                new_sent = sent[index:]
+                summary += new_sent + " "
                 count -= length
 
         return summary
