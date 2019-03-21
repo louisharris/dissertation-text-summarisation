@@ -5,7 +5,7 @@ import tensorflow as tf
 import numpy as np
 from keras.callbacks import TensorBoard
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
-from keras.constraints import UnitNorm
+from keras.constraints import UnitNorm, MaxNorm
 from keras import Sequential
 from keras import optimizers
 from sklearn.datasets import make_blobs
@@ -26,22 +26,19 @@ class TextCNN(object):
         print("adding layers to fit model")
         model = Sequential()
         model.add(Conv2D(filters=num_filters, kernel_size=(kernel_size, 300), strides=1, padding='valid',
-                         data_format='channels_last', dilation_rate=1, activation='relu',
+                         data_format='channels_last', dilation_rate=1, activation='sigmoid',
                          use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
-                         kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None,
-                         kernel_constraint=None, bias_constraint=None, batch_size=None,
+                         batch_size=None,
                          input_shape=(train_data.shape[1], train_data.shape[2], 1)))
         print("input shape", model.input_shape)
         model.add(MaxPooling2D(pool_size=(train_data.shape[1] - (kernel_size - 1), 1), strides=1, padding='valid',
                                data_format='channels_last'))
-
         model.add(Flatten())
-
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid', use_bias=True, kernel_constraint=UnitNorm(axis=0)))
 
         print("output shape", model.output_shape)
-        ada = optimizers.Adadelta(lr=0.01)
+        ada = optimizers.Adadelta(lr=1)
         model.compile(optimizer=ada, loss='binary_crossentropy', metrics=['accuracy'])
         print(model.summary())
         # sess.graph contains the graph definition; that enables the Graph Visualizer.

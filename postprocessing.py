@@ -21,6 +21,7 @@ import tensorflow as tf
 from preprocessing import Preprocessing
 from nltk.stem import PorterStemmer
 from pyrouge import Rouge155
+from random import random, shuffle
 import os
 
 
@@ -49,21 +50,24 @@ class Postprocess(object):
     def __init__(self, pre):
         self.pre = pre
 
-    def get_results(self, salience_scores):
+    def get_results(self, salience_scores, test_data):
 
         salience_scores = list(salience_scores)
+        test_data = list(test_data)
         entries = self.pre.test_entries
 
         for e in entries:
             results = []
+            # print("generated_score = ", salience_scores.pop(0))
+
             for sent in e.sentences:
+                # print("cnn_input = ", test_data.pop(0))
+                # print("orig cnn_input = ", e.vectors[0][0])
+                # exit()
                 results.append((sent, salience_scores.pop(0)[0]))
             e.output = sorted(results, key=lambda y: y[1], reverse=True)
 
-        self.pre.test_entries = entries
-
     def calculate_rouge(self, alpha):
-        ps = PorterStemmer()
         r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
 
         r.system_dir = 'system_summaries'

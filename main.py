@@ -25,10 +25,6 @@ class Main(object):
 
         self.pre.read_files()
 
-        print("getting initial salience scores...")
-
-        self.pre.get_salience_scores(0.5)
-
     def text_rank(self):
         test_entries = self.pre.test_entries
         textrank.TextRank.run(test_entries)
@@ -75,14 +71,17 @@ class Main(object):
 
     def evaluate(self, train):
 
-        train_data, train_labels, test_data = self.pre.get_cnn_vectors()
-        # We've now pre process the documents, so now we can feed into the CNN
-
-        print(len(test_data))
-
         if train:
+            print("getting initial salience scores...")
+            self.pre.get_salience_scores(0.5)
+
+            train_data, train_labels, _ = self.pre.get_cnn_vectors(train)
+
+            # We've now pre process the documents, so now we can feed into the CNN
+
             TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=3)
         else:
+            _, _, test_data = self.pre.get_cnn_vectors(train)
 
             print("generating salience results...")
 
@@ -90,8 +89,7 @@ class Main(object):
             print(gen_salience_results)
 
             print("post-processing results...")
-
-            self.post.get_results(gen_salience_results)
+            self.post.get_results(gen_salience_results, test_data)
 
             print("getting summaries...")
 

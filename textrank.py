@@ -10,8 +10,7 @@ class TextRank(object):
     @staticmethod
     def similarity(s1, s2):
         count = 1
-        # tokens_s1 = nltk.word_tokenize(s1)
-        # tokens_s2 = nltk.word_tokenize(s2)
+
         for w1 in s1:
             for w2 in s2:
                 if w1 == w2:
@@ -52,13 +51,6 @@ class TextRank(object):
 
     @staticmethod
     def run(entries):
-
-        # with open('data.txt', 'r') as myfile:
-        #     data = myfile.read().replace('\n', '')
-
-        # sentences = nltk.tokenize.sent_tokenize(data)
-        # print(sentences)
-
         # This code creates a similarity score mapping between each sentence and the other
 
         for e in entries:
@@ -73,8 +65,6 @@ class TextRank(object):
                     if s1 != s2:
                         sim_score = TextRank.similarity(sent_dict[s1], sent_dict[s2])
                         sim_map[s1][s2] = sim_score
-            # print(sim_map)
-            # print(len(sim_map))
 
             # This code uses the similarity score mappings to iteratively calculate the weighted score of each sentence
 
