@@ -69,11 +69,11 @@ class Main(object):
         print("running CNN model...")
         self.evaluate(train=False)
 
-        print(self.pre.test_entries[0].control_sum)
-        print(self.pre.test_entries[0].text_rank_sum)
-        print(self.pre.test_entries[0].generated_sum)
-        print(self.pre.test_entries[0].summary)
-        print(self.pre.test_entries[0].sentences)
+        # print(self.pre.test_entries[0].control_sum)
+        # print(self.pre.test_entries[0].text_rank_sum)
+        # print(self.pre.test_entries[0].generated_sum)
+        # print(self.pre.test_entries[0].summary)
+        # print(self.pre.test_entries[0].sentences)
 
     def evaluate(self, train):
 
