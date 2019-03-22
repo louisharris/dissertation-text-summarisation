@@ -1,6 +1,6 @@
 from datetime import time
 
-# import tensorboard as tensorboard
+import tensorboard as tensorboard
 import tensorflow as tf
 import numpy as np
 from keras.callbacks import TensorBoard

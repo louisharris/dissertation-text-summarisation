@@ -1,27 +1,9 @@
-import datetime
-import time
-
-import gensim
-import math
 import nltk
-import rougescore
-import xml.etree.ElementTree as ET
-from bs4 import BeautifulSoup
 import numpy as np
 import logging
-from gensim.test.utils import common_texts
-from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from gensim.models.word2vec import Word2Vec
-import os
-import copy
-from text_cnn import TextCNN
 import re
-from entry import Entry
-import tensorflow as tf
-from preprocessing import Preprocessing
-from nltk.stem import PorterStemmer
 from pyrouge import Rouge155
-from random import random, shuffle
 import os
 
 
