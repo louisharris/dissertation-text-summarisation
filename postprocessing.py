@@ -172,5 +172,3 @@ class Postprocess(object):
                     new_sent = sent[index:]
                     summary += new_sent + " "
             entry.generated_sum = summary
-
-

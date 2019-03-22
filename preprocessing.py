@@ -11,6 +11,7 @@ from rougescore import rougescore
 from nltk.corpus import stopwords
 from entry import Entry
 from nltk.stem import PorterStemmer
+from numpy import random
 
 
 class Preprocessing(object):
@@ -116,9 +117,9 @@ class Preprocessing(object):
                         try:
                             word_vectors.append(Preprocessing.model.get_vector(word))
                         except:
-                            word_vectors.append(zero_vector)
+                            word_vectors.append(random.uniform(-0.25, 0.25, 300))
                     else:
-                        word_vectors.append(np.random.random(300))
+                        word_vectors.append(random.random(300))
                 vectored_sents.append(word_vectors)
             entry.vectors = vectored_sents
         return entries
@@ -316,29 +317,32 @@ class Preprocessing(object):
         #     entry.saliences = sent_scores
 
         stop_words = set(stopwords.words('english'))
+        len_score = []
 
         for entry in self.train_entries:
             sentences = entry.parsed_sentences
             salience_scores = []
 
-            if self.stem:
-                ps = PorterStemmer()
-                summary_sents = [ps.stem(x) for x in nltk.word_tokenize(entry.summary)]
-            else:
-                summary_sents = nltk.word_tokenize(entry.summary)
+            summary_sents = nltk.word_tokenize(entry.summary)
+
             # Removing stop words
             summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
             summary_sents = list(filter(lambda x: x is not '.', summary_sents))
             summary_sents = list(filter(lambda x: x is not ';', summary_sents))
             summary_sents = list(filter(lambda x: x is not ',', summary_sents))
 
+            if self.stem:
+                ps = PorterStemmer()
+                summary_sents = [ps.stem(x) for x in summary_sents]
+
             for input_sent in sentences:
+
                 rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
                 rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
 
                 salience_score = alpha * rouge1 + (1 - alpha) * rouge2
                 salience_scores.append(salience_score)
-                print(salience_score)
+                len_score.append((len(input_sent), salience_score))
 
             entry.saliences = salience_scores
 
@@ -351,11 +355,8 @@ class Preprocessing(object):
 
         if train:
             for entry in self.train_entries:
-                for x in range(len(entry.vectors)):
-                    data_val = entry.vectors[x]
-                    label_val = entry.saliences[x]
-                    train_data.append(data_val)
-                    train_labels.append(label_val)
+                train_data += entry.vectors
+                train_labels += entry.saliences
 
             print(np.shape(train_data))
             print(np.shape(train_labels))
@@ -368,11 +369,9 @@ class Preprocessing(object):
 
         else:
             for entry in self.test_entries:
-                for x in range(len(entry.vectors)):
-                    data_val = entry.vectors[x]
-                    test_data.append(data_val)
+                test_data += entry.vectors
 
-            test_data = np.asarray(list(test_data), dtype=np.float32)
+            test_data = np.asarray(test_data, dtype=np.float32)
             test_data = np.expand_dims(test_data, axis=3)
 
         return train_data, train_labels, test_data

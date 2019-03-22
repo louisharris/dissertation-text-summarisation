@@ -61,13 +61,19 @@ class Main(object):
 
     def main(self):
         print("loading datasets...")
-        self.load_dataset(stem=True)
+        self.load_dataset(stem=False)
         print("running control case model...")
         self.control_case()
         print("running TextRank model...")
         self.text_rank()
         print("running CNN model...")
         self.evaluate(train=False)
+
+        print(self.pre.test_entries[0].control_sum)
+        print(self.pre.test_entries[0].text_rank_sum)
+        print(self.pre.test_entries[0].generated_sum)
+        print(self.pre.test_entries[0].summary)
+        print(self.pre.test_entries[0].sentences)
 
     def evaluate(self, train):
 
@@ -99,22 +105,6 @@ class Main(object):
             print("calculating rouge scores...")
 
             self.post.calculate_rouge(0.5)
-            return
-            mean_rouge_cnn = []
-            for entry in self.pre.test_entries:
-                mean_rouge_cnn.append(entry.rouge_scores_cnn)
-            # print(mean_rouge_cnn)
-            print("ROUGE results CNN = ", np.mean(mean_rouge_cnn, axis=0))
-
-            mean_rouge_tr = []
-            for entry in self.pre.test_entries:
-                mean_rouge_tr.append(entry.rouge_scores_tr)
-            print("ROUGE results TextRank = ", np.mean(mean_rouge_tr, axis=0))
-
-            mean_rouge_control = []
-            for entry in self.pre.test_entries:
-                mean_rouge_control.append(entry.rouge_scores_control)
-            print("ROUGE results Control = ", np.mean(mean_rouge_control, axis=0))
 
 
 if __name__ == '__main__':
