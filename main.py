@@ -67,7 +67,7 @@ class Main(object):
         print("running TextRank model...")
         self.text_rank()
         print("running CNN model...")
-        self.evaluate(train=False)
+        self.evaluate(train=True)
 
         # print(self.pre.test_entries[0].control_sum)
         # print(self.pre.test_entries[0].text_rank_sum)
@@ -79,13 +79,13 @@ class Main(object):
 
         if train:
             print("getting initial salience scores...")
-            self.pre.get_salience_scores(0.5)
+            self.pre.get_salience_scores(load=True)
 
             train_data, train_labels, _ = self.pre.get_cnn_vectors(train)
 
             # We've now pre process the documents, so now we can feed into the CNN
 
-            TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=3)
+            TextCNN(train_data=train_data, train_labels=train_labels, num_filters=400, kernel_size=20)
         else:
             _, _, test_data = self.pre.get_cnn_vectors(train)
 

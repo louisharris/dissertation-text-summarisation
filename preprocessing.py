@@ -12,6 +12,7 @@ from nltk.corpus import stopwords
 from entry import Entry
 from nltk.stem import PorterStemmer
 from numpy import random
+import pickle
 
 
 class Preprocessing(object):
@@ -272,79 +273,98 @@ class Preprocessing(object):
         self.train_entries = train_entries
         self.test_entries = test_entries
 
-    def get_salience_scores(self, alpha):
+    def get_salience_scores(self, load):
         # Calculates the similarity between each sentence and their respective training summary
 
-        # Clearing folders
-        # list(map(os.unlink, (os.path.join("model_summaries", f) for f in os.listdir("model_summaries"))))
-        # list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+        if load:
+            pickle_in = open("presaved_scores.pickle", "rb")
+            scores = pickle.load(pickle_in)
+            pickle_in.close()
+            for entry in self.train_entries:
+                sent_scores = scores.pop(0)
+                entry.saliences = sent_scores
+                # for x in range(len(entry.sentences)):
+                #     print(entry.sentences[x], sent_scores[x])
+                #     print()
+                # exit()
+
+
+        else:
+            scores = []
+
+            # Clearing folders
+            list(map(os.unlink, (os.path.join("model_summaries", f) for f in os.listdir("model_summaries"))))
+            list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+
+            for x in range(len(self.train_entries)):
+                entry = self.train_entries[x]
+                model_sum = entry.summary
+                sent_scores = []
+
+                sentences = nltk.sent_tokenize(model_sum)
+                file = open("model_summaries/model_sum.A."+str(0)+".txt", "w+")
+                for s in sentences:
+                    file.write(s+"\n")
+                file.close()
+
+                sentences = entry.sentences
+                for s in sentences:
+                    file = open("system_summaries/system_sum."+str(0)+".txt", "w+")
+                    file.write(s)
+                    file.close()
+
+                    r = Rouge155("ROUGE-1.5.5",
+                                 rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
+
+                    r.system_dir = 'system_summaries'
+                    r.model_dir = 'model_summaries'
+                    r.system_filename_pattern = 'system_sum.(\d+).txt'
+                    r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
+
+                    output = r.convert_and_evaluate()
+                    output_dict = r.output_to_dict(output)
+                    score = (output_dict['rouge_1_f_score'] + output_dict['rouge_2_f_score'])/2
+                    sent_scores.append(score)
+                    # Clearing folder
+                    list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+
+                list(map(os.unlink, (os.path.join("model_summaries", f) for f in os.listdir("model_summaries"))))
+                print(sent_scores)
+                scores.append(sent_scores)
+            pickle_out = open("presaved_scores.pickle", "wb")
+            pickle.dump(scores, pickle_out)
+            pickle_out.close()
+            exit()
+
+        # stop_words = set(stopwords.words('english'))
+        # len_score = []
         #
-        # for x in range(len(self.train_entries)):
-        #     entry = self.train_entries[x]
-        #     model_sum = entry.summary
-        #     sent_scores = []
+        # for entry in self.train_entries:
+        #     sentences = entry.parsed_sentences
+        #     salience_scores = []
         #
-        #     sentences = nltk.sent_tokenize(model_sum)
-        #     file = open("model_summaries/model_sum.A."+str(0)+".txt", "w+")
-        #     for s in sentences:
-        #         file.write(s+"\n")
-        #     file.close()
+        #     summary_sents = nltk.word_tokenize(entry.summary)
         #
-        #     sentences = entry.sentences
-        #     for s in sentences:
-        #         file = open("system_summaries/system_sum."+str(0)+".txt", "w+")
-        #         file.write(s)
-        #         file.close()
+        #     # Removing stop words
+        #     summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
+        #     summary_sents = list(filter(lambda x: x is not '.', summary_sents))
+        #     summary_sents = list(filter(lambda x: x is not ';', summary_sents))
+        #     summary_sents = list(filter(lambda x: x is not ',', summary_sents))
         #
-        #         r = Rouge155("ROUGE-1.5.5",
-        #                      rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
+        #     if self.stem:
+        #         ps = PorterStemmer()
+        #         summary_sents = [ps.stem(x) for x in summary_sents]
         #
-        #         r.system_dir = 'system_summaries'
-        #         r.model_dir = 'model_summaries'
-        #         r.system_filename_pattern = 'system_sum.(\d+).txt'
-        #         r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
+        #     for input_sent in sentences:
         #
-        #         output = r.convert_and_evaluate()
-        #         output_dict = r.output_to_dict(output)
-        #         score = (output_dict['rouge_1_f_score'] + output_dict['rouge_2_f_score'])/2
-        #         print(score)
-        #         sent_scores.append(score)
-        #         # Clearing folder
-        #         list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+        #         rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
+        #         rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
         #
-        #     list(map(os.unlink, (os.path.join("model_summaries", f) for f in os.listdir("model_summaries"))))
-        #     print(sent_scores)
-        #     entry.saliences = sent_scores
-
-        stop_words = set(stopwords.words('english'))
-        len_score = []
-
-        for entry in self.train_entries:
-            sentences = entry.parsed_sentences
-            salience_scores = []
-
-            summary_sents = nltk.word_tokenize(entry.summary)
-
-            # Removing stop words
-            summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
-            summary_sents = list(filter(lambda x: x is not '.', summary_sents))
-            summary_sents = list(filter(lambda x: x is not ';', summary_sents))
-            summary_sents = list(filter(lambda x: x is not ',', summary_sents))
-
-            if self.stem:
-                ps = PorterStemmer()
-                summary_sents = [ps.stem(x) for x in summary_sents]
-
-            for input_sent in sentences:
-
-                rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
-                rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
-
-                salience_score = alpha * rouge1 + (1 - alpha) * rouge2
-                salience_scores.append(salience_score)
-                len_score.append((len(input_sent), salience_score))
-
-            entry.saliences = salience_scores
+        #         salience_score = 0.5 * rouge1 + (1 - 0.5) * rouge2
+        #         salience_scores.append(salience_score)
+        #         len_score.append((len(input_sent), salience_score))
+        #
+        #     entry.saliences = salience_scores
 
     def get_cnn_vectors(self, train):
         # Gets the training vectors in a useful manner to input into the CNN
@@ -364,14 +384,14 @@ class Preprocessing(object):
             train_data = np.asarray(train_data, dtype=np.float32)
             train_labels = np.asarray(train_labels, dtype=np.float32)
 
-            train_data = np.expand_dims(train_data, axis=3)
-            train_labels = np.expand_dims(train_labels, axis=1)
+            #train_data = np.expand_dims(train_data, axis=3)
+            #train_labels = np.expand_dims(train_labels, axis=1)
 
         else:
             for entry in self.test_entries:
                 test_data += entry.vectors
 
             test_data = np.asarray(test_data, dtype=np.float32)
-            test_data = np.expand_dims(test_data, axis=3)
+            #test_data = np.expand_dims(test_data, axis=3)
 
         return train_data, train_labels, test_data
