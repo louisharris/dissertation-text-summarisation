@@ -101,7 +101,7 @@ class Preprocessing(object):
     @staticmethod
     def get_sent_vectors(entries, max_sent_length, rand):
         # Uses Word2Vec to get list of sentence vectors from words
-
+        rand_word_vecs = {}
         zero_vector = np.zeros(300)
         print("max sent length = ", max_sent_length)
         for entry in entries:
@@ -118,12 +118,42 @@ class Preprocessing(object):
                         try:
                             word_vectors.append(Preprocessing.model.get_vector(word))
                         except:
-                            word_vectors.append(random.uniform(-0.25, 0.25, 300))
+                            vec = random.uniform(-0.1,0.1,300)
+                            word_vectors.append(vec)
                     else:
-                        word_vectors.append(random.random(300))
+                        if word in rand_word_vecs:
+                            vec = rand_word_vecs[word]
+                        else:
+                            vec = random.random(300)
+                            rand_word_vecs[word] = vec
+                        word_vectors.append(vec)
                 vectored_sents.append(word_vectors)
             entry.vectors = vectored_sents
         return entries
+
+    @staticmethod
+    def get_sent_vectors_average(entries, max_sent_length):
+        for entry in entries:
+            sents = entry.parsed_sentences
+            new_sents = []
+            for s in sents:
+                new_sents.append(Preprocessing.pad_sentence(s, max_sent_length))
+
+            vectored_sents = []
+            for sent in new_sents:
+                word_vectors = []
+                for word in sent:
+                    try:
+                        vec = Preprocessing.model.get_vector(word)
+                        word_vectors.append(vec)
+                    except:
+                        vec = np.zeros(300)
+                        word_vectors.append(vec)
+                vectored_sents.append(np.mean(word_vectors, axis=0))
+            entry.vectors = vectored_sents
+        return entries
+
+
 
     @staticmethod
     def cut_sentences(train_entries, test_entries):
@@ -179,6 +209,9 @@ class Preprocessing(object):
         train_summaries = Preprocessing.get_train_summaries()  # (docref, doc)
         test_summaries = Preprocessing.get_test_summaries()  # (docref, doc)
 
+        train_cluster_count = 0
+        test_cluster_count = 0
+
         # Reads in train files
         for filepath in Preprocessing.doc_paths:
             for filename in sorted(os.listdir(filepath)):
@@ -189,7 +222,7 @@ class Preprocessing(object):
                     file.close()
                     # Extracting text from the XML files
                     soup = BeautifulSoup(text, 'html.parser')
-
+                    train_cluster_count+=1
                     documents = soup.findAll('doc')
 
                     for d in documents:
@@ -224,7 +257,7 @@ class Preprocessing(object):
                     soup = BeautifulSoup(text, 'html.parser')
 
                     documents = soup.findAll('doc')
-
+                    test_cluster_count +=1
                     for d in documents:
                         docref = str(d.find('docno')).replace("<docno>", "").replace("</docno>", "").replace(
                             "\n",
@@ -245,6 +278,9 @@ class Preprocessing(object):
                         e.doc_id = docref
                         e.sentences = sentences
                         test_entries.append(e)
+
+        print("No. of training clusters = ", train_cluster_count)
+        print("No. of testing clusters = ", test_cluster_count)
 
         for entry in train_entries:
             for sum in train_summaries:
@@ -268,8 +304,10 @@ class Preprocessing(object):
         self.parse_sentences(train_entries, test_entries)
         max_sent_length = Preprocessing.get_max_length(train_entries + test_entries)
 
-        train_entries = Preprocessing.get_sent_vectors(train_entries, max_sent_length, False)
-        test_entries = Preprocessing.get_sent_vectors(test_entries, max_sent_length, False)
+        train_entries = Preprocessing.get_sent_vectors(train_entries, max_sent_length, rand=False)
+        test_entries = Preprocessing.get_sent_vectors(test_entries, max_sent_length, rand=False)
+        # train_entries = Preprocessing.get_sent_vectors_average(train_entries, max_sent_length)
+        # test_entries = Preprocessing.get_sent_vectors_average(test_entries, max_sent_length)
         self.train_entries = train_entries
         self.test_entries = test_entries
 
@@ -283,11 +321,6 @@ class Preprocessing(object):
             for entry in self.train_entries:
                 sent_scores = scores.pop(0)
                 entry.saliences = sent_scores
-                # for x in range(len(entry.sentences)):
-                #     print(entry.sentences[x], sent_scores[x])
-                #     print()
-                # exit()
-
 
         else:
             scores = []
@@ -314,7 +347,7 @@ class Preprocessing(object):
                     file.close()
 
                     r = Rouge155("ROUGE-1.5.5",
-                                 rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
+                                 rouge_args="-e ROUGE-1.5.5/data -a -n 2 -m -s -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
 
                     r.system_dir = 'system_summaries'
                     r.model_dir = 'model_summaries'

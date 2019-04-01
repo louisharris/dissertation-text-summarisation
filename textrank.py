@@ -1,11 +1,19 @@
 # This is my implementation of the TextRank algorithm to generate summaries from documents.
 import math
+import numpy as np
 import operator
 import random
 import nltk
+import gensim
+from scipy import spatial
 
+from preprocessing import Preprocessing
+
+model = gensim.models.KeyedVectors.load_word2vec_format('./model/GoogleNews-vectors-negative300.bin', binary=True)
+text_vec_map = {}
 
 class TextRank(object):
+
 
     @staticmethod
     def similarity(s1, s2):
@@ -26,6 +34,42 @@ class TextRank(object):
 
         sim_score = count / (math.log(len1) + math.log(len2))
         return sim_score
+
+    @staticmethod
+    def word_2_vec_similarity(s1, s2):
+        s1_string = "".join(s1)
+        s2_string = "".join(s2)
+
+        if s1_string in text_vec_map:
+            avg_s1 = text_vec_map[s1_string]
+        else:
+            new_s1 = Preprocessing.pad_sentence(s1, 94)
+            s1_vectors = []
+            for word in new_s1:
+                try:
+                    s1_vectors.append(Preprocessing.model.get_vector(word))
+                except:
+                    vec = np.random.uniform(-0.1, 0.1, 300)
+                    s1_vectors.append(vec)
+            avg_s1 = np.mean(s1_vectors, axis=0)
+            text_vec_map[s1_string] = avg_s1
+        if s2_string in text_vec_map:
+            avg_s2 = text_vec_map[s2_string]
+        else:
+            new_s2 = Preprocessing.pad_sentence(s2, 94)
+            s2_vectors = []
+
+            for word in new_s2:
+                try:
+                    s2_vectors.append(Preprocessing.model.get_vector(word))
+                except:
+                    vec = np.random.uniform(-0.1, 0.1, 300)
+                    s2_vectors.append(vec)
+            avg_s2 = np.mean(s2_vectors, axis=0)
+            text_vec_map[s2_string] = avg_s2
+
+        similarity = 1-spatial.distance.cosine(avg_s1, avg_s2)
+        return similarity
 
     @staticmethod
     def get_summary_sentences(word_count, sorted_list):
@@ -63,7 +107,8 @@ class TextRank(object):
             for s1 in e.sentences:
                 for s2 in e.sentences:
                     if s1 != s2:
-                        sim_score = TextRank.similarity(sent_dict[s1], sent_dict[s2])
+                        #sim_score = TextRank.similarity(sent_dict[s1], sent_dict[s2])
+                        sim_score = TextRank.word_2_vec_similarity(sent_dict[s1], sent_dict[s2])
                         sim_map[s1][s2] = sim_score
 
             # This code uses the similarity score mappings to iteratively calculate the weighted score of each sentence
@@ -98,8 +143,8 @@ class TextRank(object):
                 iterate_graph()
 
             # This code creates a list of all the similarity scores and ranks them in a max ordering
-            sorted_list = sorted(new_score_map.items(), key=operator.itemgetter(1))
-            sorted_list.reverse()
+            sorted_list = sorted(new_score_map.items(), key=operator.itemgetter(1), reverse=True)
+            e.output_tr = sorted_list
 
             summary = TextRank.get_summary_sentences(100, sorted_list)
             e.text_rank_sum = summary

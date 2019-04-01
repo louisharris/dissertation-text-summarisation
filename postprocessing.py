@@ -57,19 +57,22 @@ class Postprocess(object):
         r.system_filename_pattern = 'system_sum.(\d+).txt'
         r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
 
-        # Calculating ROUGE for CNN
+        # Writing model summaries
         list(map(os.unlink, (os.path.join("model_summaries", f) for f in os.listdir("model_summaries"))))
+        for x in range(len(self.pre.test_entries)):
+            entry = self.pre.test_entries[x]
+            model_sum = entry.summary
+            sentences = nltk.sent_tokenize(model_sum)
+            file = open("model_summaries/model_sum.A." + str(x) + ".txt", "w+")
+            for s in sentences:
+                file.write(s + "\n")
+            file.close()
+
+        # Calculating ROUGE for CNN
         list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
 
         for x in range(len(self.pre.test_entries)):
             entry = self.pre.test_entries[x]
-            model_sum = entry.summary
-
-            sentences = nltk.sent_tokenize(model_sum)
-            file = open("model_summaries/model_sum.A."+str(x)+".txt", "w+")
-            for s in sentences:
-                file.write(s+"\n")
-            file.close()
 
             sentences = nltk.sent_tokenize(entry.generated_sum)
             file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
@@ -99,6 +102,26 @@ class Postprocess(object):
 
         results_tr = r.convert_and_evaluate()
 
+        # Calculating ROUGE for combined extension
+        list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
+        r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
+
+        r.system_dir = 'system_summaries'
+        r.model_dir = 'model_summaries'
+        r.system_filename_pattern = 'system_sum.(\d+).txt'
+        r.model_filename_pattern = 'model_sum.[A-Z].#ID#.txt'
+
+        for x in range(len(self.pre.test_entries)):
+            entry = self.pre.test_entries[x]
+
+            sentences = nltk.sent_tokenize(entry.combined_sum)
+            file = open("system_summaries/system_sum." + str(x) + ".txt", "w+")
+            for s in sentences:
+                file.write(s + "\n")
+            file.close()
+
+        results_combined = r.convert_and_evaluate()
+
 
         # Calculating ROUGE for control case
         list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
@@ -122,6 +145,7 @@ class Postprocess(object):
 
         print("\nCNN Scores:\n", results_cnn, "\n")
         print("TextRank Scores:\n", results_tr, "\n")
+        print("Combined Scores:\n", results_combined, "\n")
         print("Control case scores\n", results_control)
 
     def get_summary_sentences(self, word_count):

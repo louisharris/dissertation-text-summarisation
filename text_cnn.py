@@ -34,7 +34,7 @@ class TextCNN(object):
         model.add(Flatten())
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid', use_bias=True,
-                        kernel_regularizer=regularizers.l2(0.1)))
+                        kernel_regularizer=regularizers.l2(0.01)))
 
         print("output shape", model.output_shape)
         ada = optimizers.Adadelta(lr=1)
@@ -44,7 +44,7 @@ class TextCNN(object):
         # tb = TensorBoard(log_dir="logs/{}".format(time()))
         tb = TensorBoard(log_dir='./logs'.format(time()), histogram_freq=0, write_graph=True, write_images=False)
         print("fitting model to train")
-        model.fit(train_data, train_labels, epochs=30, batch_size=None, validation_split=0.2, callbacks=[tb])
+        model.fit(train_data, train_labels, epochs=10, batch_size=None, validation_split=0.2, callbacks=[tb])
 
         tf.keras.backend.get_session().run(tf.global_variables_initializer())
 
