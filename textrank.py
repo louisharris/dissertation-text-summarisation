@@ -1,24 +1,27 @@
-# This is my implementation of the TextRank algorithm to generate summaries from documents.
 import math
 import numpy as np
 import operator
 import random
 import nltk
 import gensim
-from scipy import spatial
 
+from scipy import spatial
 from preprocessing import Preprocessing
 
 model = gensim.models.KeyedVectors.load_word2vec_format('./model/GoogleNews-vectors-negative300.bin', binary=True)
 text_vec_map = {}
 
-class TextRank(object):
 
+class TextRank(object):
+    """
+    Implementation of the TextRank algorithm to generate summaries from documents.
+    """
 
     @staticmethod
     def similarity(s1, s2):
-        count = 1
+        # Bag-of-words method to calculate similarity scores between 2 sentences
 
+        count = 1
         for w1 in s1:
             for w2 in s2:
                 if w1 == w2:
@@ -33,10 +36,16 @@ class TextRank(object):
             len2 += 1
 
         sim_score = count / (math.log(len1) + math.log(len2))
+
+        assert(sim_score >= 0)
+
         return sim_score
 
     @staticmethod
     def word_2_vec_similarity(s1, s2):
+        # Cosine similarity method to calculate similarity between
+        # two sentences
+
         s1_string = "".join(s1)
         s2_string = "".join(s2)
 
@@ -68,11 +77,15 @@ class TextRank(object):
             avg_s2 = np.mean(s2_vectors, axis=0)
             text_vec_map[s2_string] = avg_s2
 
-        similarity = 1-spatial.distance.cosine(avg_s1, avg_s2)
+        similarity = 1 - spatial.distance.cosine(avg_s1, avg_s2)
+
+        assert(0 <= similarity <= 1)
+
         return similarity
 
     @staticmethod
     def get_summary_sentences(word_count, sorted_list):
+        # Obtains summary sentences filling the word count
 
         count = word_count
         summary = ""
@@ -91,12 +104,14 @@ class TextRank(object):
                 summary += new_sent + " "
                 count -= length
 
+        assert(len(nltk.word_tokenize(summary)) >= 100)
         return summary
 
     @staticmethod
     def run(entries):
         # This code creates a similarity score mapping between each sentence and the other
 
+        iteration_counts = []
         for e in entries:
             sim_map = {}
 
@@ -107,12 +122,12 @@ class TextRank(object):
             for s1 in e.sentences:
                 for s2 in e.sentences:
                     if s1 != s2:
-                        #sim_score = TextRank.similarity(sent_dict[s1], sent_dict[s2])
-                        sim_score = TextRank.word_2_vec_similarity(sent_dict[s1], sent_dict[s2])
+                        sim_score = TextRank.similarity(sent_dict[s1], sent_dict[s2])
+                        # sim_score = TextRank.word_2_vec_similarity(sent_dict[s1], sent_dict[s2])
                         sim_map[s1][s2] = sim_score
 
-            # This code uses the similarity score mappings to iteratively calculate the weighted score of each sentence
-
+            # Uses similarity score mappings to iteratively calculate the
+            # weighted score of each sentence
             new_score_map = {}
             old_score_map = {}
 
@@ -139,12 +154,20 @@ class TextRank(object):
                     old_score_map[S1] = new_score_map[S1]
                     new_score_map[S1] = new_score
 
+            # Iteration
+            iterate_count = 0
             while graph_test() is 0:
                 iterate_graph()
+                iterate_count += 1
+            iteration_counts.append(iterate_count)
 
-            # This code creates a list of all the similarity scores and ranks them in a max ordering
+            # Creates a list of all the similarity scores and ranks them in a max ordering
             sorted_list = sorted(new_score_map.items(), key=operator.itemgetter(1), reverse=True)
             e.output_tr = sorted_list
 
             summary = TextRank.get_summary_sentences(100, sorted_list)
+
+            assert(summary is not None)
+
             e.text_rank_sum = summary
+        print("Converged after ", np.mean(iteration_counts), " iterations")

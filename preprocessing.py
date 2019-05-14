@@ -7,7 +7,6 @@ import copy
 import nltk
 from bs4 import BeautifulSoup
 from pyrouge import Rouge155
-from rougescore import rougescore
 from nltk.corpus import stopwords
 from entry import Entry
 from nltk.stem import PorterStemmer
@@ -16,6 +15,11 @@ import pickle
 
 
 class Preprocessing(object):
+    """
+    Preprocesses the DUC dataset documents, for easy use
+    within the TextRank and CNN summarisation systems.
+    """
+
     doc_paths = ["duc2001_simplified/testing/"]
     sum_paths = ["duc2001_simplified/testing/summaries"]
     doc_paths_test = ["duc2002_simplified/data/"]
@@ -29,7 +33,7 @@ class Preprocessing(object):
 
     @staticmethod
     def get_train_summaries():
-        # Gets the relevant summary to the train sentenes
+        # Obtains the relevant summaries to the train sentences
 
         summaries = []
         for filepath in Preprocessing.sum_paths:
@@ -52,7 +56,7 @@ class Preprocessing(object):
 
     @staticmethod
     def get_test_summaries():
-        # Aquires the relevant summary to the test sentence
+        # Obtains the relevant summaries to the test sentences
 
         summaries = []
         for filepath in Preprocessing.sum_paths_test:
@@ -74,12 +78,16 @@ class Preprocessing(object):
 
     @staticmethod
     def pad_sentence(sent, max_sent_len):
+        # Pad sentences with <PAD> token to match max sentence length
+
         new_sent = copy.copy(sent)
         diff = max_sent_len - len(new_sent)
         while diff > 0:
             diff -= 1
             new_sent.append("<PAD>")
 
+        assert(len(new_sent) == max_sent_len)
+        exit()
         return new_sent
 
     @staticmethod
@@ -89,20 +97,23 @@ class Preprocessing(object):
         # Loads words and pads
         tokenised_sentences = []
         for entry in entries:
-             tokenised_sentences.append(entry.parsed_sentences)
+            tokenised_sentences.append(entry.parsed_sentences)
 
         max_count = 0
         for sents in tokenised_sentences:
             for s in sents:
                 if len(s) > max_count:
                     max_count = len(s)
+
+        assert(max_count > 0)
+
         return max_count
 
     @staticmethod
     def get_sent_vectors(entries, max_sent_length, rand):
         # Uses Word2Vec to get list of sentence vectors from words
+
         rand_word_vecs = {}
-        zero_vector = np.zeros(300)
         print("max sent length = ", max_sent_length)
         for entry in entries:
             sents = entry.parsed_sentences
@@ -118,7 +129,7 @@ class Preprocessing(object):
                         try:
                             word_vectors.append(Preprocessing.model.get_vector(word))
                         except:
-                            vec = random.uniform(-0.1,0.1,300)
+                            vec = random.uniform(-0.1, 0.1, 300)
                             word_vectors.append(vec)
                     else:
                         if word in rand_word_vecs:
@@ -129,10 +140,15 @@ class Preprocessing(object):
                         word_vectors.append(vec)
                 vectored_sents.append(word_vectors)
             entry.vectors = vectored_sents
+
+            assert(len(vectored_sents[0]) == len(vectored_sents[1]))
         return entries
 
     @staticmethod
     def get_sent_vectors_average(entries, max_sent_length):
+        # Created sentence vectors by taking the mean of each word vector
+        # in the sentence
+
         for entry in entries:
             sents = entry.parsed_sentences
             new_sents = []
@@ -151,9 +167,9 @@ class Preprocessing(object):
                         word_vectors.append(vec)
                 vectored_sents.append(np.mean(word_vectors, axis=0))
             entry.vectors = vectored_sents
+
+            assert(len(vectored_sents[0]) == 1)
         return entries
-
-
 
     @staticmethod
     def cut_sentences(train_entries, test_entries):
@@ -222,7 +238,7 @@ class Preprocessing(object):
                     file.close()
                     # Extracting text from the XML files
                     soup = BeautifulSoup(text, 'html.parser')
-                    train_cluster_count+=1
+                    train_cluster_count += 1
                     documents = soup.findAll('doc')
 
                     for d in documents:
@@ -257,7 +273,7 @@ class Preprocessing(object):
                     soup = BeautifulSoup(text, 'html.parser')
 
                     documents = soup.findAll('doc')
-                    test_cluster_count +=1
+                    test_cluster_count += 1
                     for d in documents:
                         docref = str(d.find('docno')).replace("<docno>", "").replace("</docno>", "").replace(
                             "\n",
@@ -282,6 +298,7 @@ class Preprocessing(object):
         print("No. of training clusters = ", train_cluster_count)
         print("No. of testing clusters = ", test_cluster_count)
 
+        # Groups summary document to original text by ID
         for entry in train_entries:
             for sum in train_summaries:
                 if entry.doc_id == sum[0]:
@@ -306,8 +323,6 @@ class Preprocessing(object):
 
         train_entries = Preprocessing.get_sent_vectors(train_entries, max_sent_length, rand=False)
         test_entries = Preprocessing.get_sent_vectors(test_entries, max_sent_length, rand=False)
-        # train_entries = Preprocessing.get_sent_vectors_average(train_entries, max_sent_length)
-        # test_entries = Preprocessing.get_sent_vectors_average(test_entries, max_sent_length)
         self.train_entries = train_entries
         self.test_entries = test_entries
 
@@ -335,14 +350,14 @@ class Preprocessing(object):
                 sent_scores = []
 
                 sentences = nltk.sent_tokenize(model_sum)
-                file = open("model_summaries/model_sum.A."+str(0)+".txt", "w+")
+                file = open("model_summaries/model_sum.A." + str(0) + ".txt", "w+")
                 for s in sentences:
-                    file.write(s+"\n")
+                    file.write(s + "\n")
                 file.close()
 
                 sentences = entry.sentences
                 for s in sentences:
-                    file = open("system_summaries/system_sum."+str(0)+".txt", "w+")
+                    file = open("system_summaries/system_sum." + str(0) + ".txt", "w+")
                     file.write(s)
                     file.close()
 
@@ -356,7 +371,7 @@ class Preprocessing(object):
 
                     output = r.convert_and_evaluate()
                     output_dict = r.output_to_dict(output)
-                    score = (output_dict['rouge_1_f_score'] + output_dict['rouge_2_f_score'])/2
+                    score = (output_dict['rouge_1_f_score'] + output_dict['rouge_2_f_score']) / 2
                     sent_scores.append(score)
                     # Clearing folder
                     list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
@@ -368,36 +383,6 @@ class Preprocessing(object):
             pickle.dump(scores, pickle_out)
             pickle_out.close()
             exit()
-
-        # stop_words = set(stopwords.words('english'))
-        # len_score = []
-        #
-        # for entry in self.train_entries:
-        #     sentences = entry.parsed_sentences
-        #     salience_scores = []
-        #
-        #     summary_sents = nltk.word_tokenize(entry.summary)
-        #
-        #     # Removing stop words
-        #     summary_sents = list(filter(lambda x: x not in stop_words, summary_sents))
-        #     summary_sents = list(filter(lambda x: x is not '.', summary_sents))
-        #     summary_sents = list(filter(lambda x: x is not ';', summary_sents))
-        #     summary_sents = list(filter(lambda x: x is not ',', summary_sents))
-        #
-        #     if self.stem:
-        #         ps = PorterStemmer()
-        #         summary_sents = [ps.stem(x) for x in summary_sents]
-        #
-        #     for input_sent in sentences:
-        #
-        #         rouge1 = rougescore.rouge_1(input_sent, [summary_sents], 0.5)
-        #         rouge2 = rougescore.rouge_2(input_sent, [summary_sents], 0.5)
-        #
-        #         salience_score = 0.5 * rouge1 + (1 - 0.5) * rouge2
-        #         salience_scores.append(salience_score)
-        #         len_score.append((len(input_sent), salience_score))
-        #
-        #     entry.saliences = salience_scores
 
     def get_cnn_vectors(self, train):
         # Gets the training vectors in a useful manner to input into the CNN
@@ -417,14 +402,10 @@ class Preprocessing(object):
             train_data = np.asarray(train_data, dtype=np.float32)
             train_labels = np.asarray(train_labels, dtype=np.float32)
 
-            #train_data = np.expand_dims(train_data, axis=3)
-            #train_labels = np.expand_dims(train_labels, axis=1)
-
         else:
             for entry in self.test_entries:
                 test_data += entry.vectors
 
             test_data = np.asarray(test_data, dtype=np.float32)
-            #test_data = np.expand_dims(test_data, axis=3)
 
         return train_data, train_labels, test_data

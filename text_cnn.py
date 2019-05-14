@@ -11,8 +11,8 @@ from keras import Sequential, optimizers, regularizers
 
 class TextCNN(object):
     """
-    A CNN for text salience scoring.
-    Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
+    A CNN for text salience scoring. Replicating the CNN described in (Zhang et al., 2016)
+    Uses a convolutional layer, followed by a max-pooling layer, flatten/dropout layer and fully-connected layer.
     """
 
     def __init__(
@@ -20,6 +20,7 @@ class TextCNN(object):
 
         print(train_data.shape)
         print(train_labels.shape)
+
         # Adding Keras layers to fit the model
         print("adding layers to fit model")
         model = Sequential()
@@ -38,10 +39,8 @@ class TextCNN(object):
 
         print("output shape", model.output_shape)
         ada = optimizers.Adadelta(lr=1)
-        model.compile(optimizer=ada, loss='binary_crossentropy', metrics=['mae'])
+        model.compile(optimizer=ada, loss='mae', metrics=['binary_crossentropy'])
         print(model.summary())
-        # sess.graph contains the graph definition; that enables the Graph Visualizer.
-        # tb = TensorBoard(log_dir="logs/{}".format(time()))
         tb = TensorBoard(log_dir='./logs'.format(time()), histogram_freq=0, write_graph=True, write_images=False)
         print("fitting model to train")
         model.fit(train_data, train_labels, epochs=10, batch_size=None, validation_split=0.2, callbacks=[tb])

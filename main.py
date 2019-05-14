@@ -1,22 +1,29 @@
-import nltk
 import numpy as np
-from random import random, shuffle
+import matplotlib.pyplot as plt
+import nltk
+import textrank
 
+from random import shuffle
 from postprocessing import Postprocess
 from preprocessing import Preprocessing
 from text_cnn import TextCNN
 from extension import Extension
-import textrank
+from plotting import Plotting
 
 
 class Main(object):
+    """
+    Runs the main functions of the system in order,
+    collecting the summary results.
+    """
 
     def __init__(self):
         self.pre = None
         self.post = None
 
     def load_dataset(self, stem):
-        # Runs tests depending on parameters
+        # Loads and reads in data files
+
         print("initialising training models...")
 
         self.pre = Preprocessing(stem)
@@ -25,6 +32,9 @@ class Main(object):
         print("reading files...")
 
         self.pre.read_files()
+
+        assert(self.pre is not None)
+        assert(self.post is not None)
 
     def text_rank(self):
         test_entries = self.pre.test_entries
@@ -55,6 +65,7 @@ class Main(object):
                     summary += new_sent + " "
                     count -= length
 
+            assert(len(nltk.word_tokenize(summary)) >= word_count)
             return summary
 
         for e in test_entries:
@@ -62,10 +73,13 @@ class Main(object):
             new_sentences = sentences[:]  # Copy sentences
             shuffle(new_sentences)
             summary = get_summary_sentences(100, new_sentences)
+            assert(summary is not None)
             e.control_sum = summary
 
     @staticmethod
     def digit_count(entries):
+        # Counts number of digits present in all entries
+
         cnn_dig_count = 0
         tr_dig_count = 0
         for entry in entries:
@@ -75,6 +89,8 @@ class Main(object):
         print("TextRank dig count= ", tr_dig_count)
 
     def main(self):
+        # Runs all preprocessing and evaluations to collect results
+
         print("loading datasets...")
         self.load_dataset(stem=False)
         print("running control case model...")
@@ -91,19 +107,28 @@ class Main(object):
         self.post.calculate_rouge(0.5)
         self.digit_count(self.pre.test_entries)
 
-        # print(self.pre.test_entries[0].control_sum)
-        # print(self.pre.test_entries[0].text_rank_sum)
-        # print(self.pre.test_entries[0].generated_sum)
-        # print(self.pre.test_entries[0].summary)
-        # print(self.pre.test_entries[0].sentences)
+        # Prints three example summaries
+        for x in range(3):
+            print("CNN summary: ", self.pre.test_entries[x].generated_sum)
+            print("TextRank summary: ", self.pre.test_entries[x].text_rank_sum)
+            print("Combined summary: ", self.pre.test_entries[x].combined_sum)
+            print("Gold Standard summary: ", self.pre.test_entries[x].summary)
+            print("Doc ID: ",self.pre.test_entries[x].doc_id)
+            print()
+
+        plotter = Plotting(self.pre.test_entries)
+        plotter.plot()
 
     def cnn(self, train):
+        # Trains or loads CNN depending on train = True/False
 
         if train:
             print("getting initial salience scores...")
             self.pre.get_salience_scores(load=True)
 
             train_data, train_labels, _ = self.pre.get_cnn_vectors(train)
+
+            assert(train_data is not None and train_labels is not None)
 
             # We've now pre process the documents, so now we can feed into the CNN
 
@@ -118,7 +143,7 @@ class Main(object):
             print(gen_salience_results)
 
             print("post-processing results...")
-            self.post.get_results(gen_salience_results, test_data)
+            self.post.get_results(gen_salience_results)
 
             print("getting summaries...")
 

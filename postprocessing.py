@@ -7,11 +7,10 @@ from pyrouge import Rouge155
 import os
 
 
-
 class TrainWord2vec(object):
 
     @staticmethod
-    def train_word2_vec(parameters, documents):
+    def train_word2_vec(documents):
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
         doc_list = []
         for doc in documents:
@@ -19,37 +18,40 @@ class TrainWord2vec(object):
             doc_list.append(tokens)
 
         model = Word2Vec(doc_list, size=100, window=5, min_count=0, workers=4)
-        # model.delete_temporary_training_data(keep_doctags_vectors=True, keep_inference=True)
         model.save('./word2vec_model.d2v')
         return model
-
-    # Here we start the tensorflow implementation, we need all Word2Vec vectors stored so we can input into the model
-    # 1 vector for each document I think
 
 
 class Postprocess(object):
 
+    """
+    This Class obtains summaries from output results obtained from
+    each summarisation system
+    """
+
     def __init__(self, pre):
         self.pre = pre
 
-    def get_results(self, salience_scores, test_data):
+    def get_results(self, salience_scores):
+        # Collects and sorts sentence results by score
 
         salience_scores = list(salience_scores)
-        test_data = list(test_data)
         entries = self.pre.test_entries
 
         for e in entries:
             results = []
-            # print("generated_score = ", salience_scores.pop(0))
 
             for sent in e.sentences:
-                # print("cnn_input = ", test_data.pop(0))
-                # print("orig cnn_input = ", e.vectors[0][0])
-                # exit()
                 results.append((sent, salience_scores.pop(0)[0]))
+
+            assert(results is not [])
+
             e.output = sorted(results, key=lambda y: y[1], reverse=True)
 
     def calculate_rouge(self, alpha):
+        # Calculates ROUGE-1 and ROUGE-2 scores between all generated
+        # summaries and the gold standard summaries
+
         r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
 
         r.system_dir = 'system_summaries'
@@ -75,9 +77,9 @@ class Postprocess(object):
             entry = self.pre.test_entries[x]
 
             sentences = nltk.sent_tokenize(entry.generated_sum)
-            file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
+            file = open("system_summaries/system_sum." + str(x) + ".txt", "w+")
             for s in sentences:
-                file.write(s+"\n")
+                file.write(s + "\n")
             file.close()
 
         results_cnn = r.convert_and_evaluate()
@@ -95,9 +97,9 @@ class Postprocess(object):
             entry = self.pre.test_entries[x]
 
             sentences = nltk.sent_tokenize(entry.text_rank_sum)
-            file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
+            file = open("system_summaries/system_sum." + str(x) + ".txt", "w+")
             for s in sentences:
-                file.write(s+"\n")
+                file.write(s + "\n")
             file.close()
 
         results_tr = r.convert_and_evaluate()
@@ -122,7 +124,6 @@ class Postprocess(object):
 
         results_combined = r.convert_and_evaluate()
 
-
         # Calculating ROUGE for control case
         list(map(os.unlink, (os.path.join("system_summaries", f) for f in os.listdir("system_summaries"))))
         r = Rouge155("ROUGE-1.5.5", rouge_args="-e ROUGE-1.5.5/data -a -n 2 -u -c 95 -x -r 1000 -f A -p 0.5 -t 0")
@@ -136,9 +137,9 @@ class Postprocess(object):
             entry = self.pre.test_entries[x]
 
             sentences = nltk.sent_tokenize(entry.control_sum)
-            file = open("system_summaries/system_sum."+str(x)+".txt", "w+")
+            file = open("system_summaries/system_sum." + str(x) + ".txt", "w+")
             for s in sentences:
-                file.write(s+"\n")
+                file.write(s + "\n")
             file.close()
 
         results_control = r.convert_and_evaluate()
@@ -149,6 +150,7 @@ class Postprocess(object):
         print("Control case scores\n", results_control)
 
     def get_summary_sentences(self, word_count):
+        # Collects first sentences filling the desired word count
 
         for entry in self.pre.test_entries:
             sentences = entry.output
@@ -165,6 +167,8 @@ class Postprocess(object):
             entry.output = new_output
 
     def return_summaries(self):
+        # Outputs summary to entry object
+
         for entry in self.pre.test_entries:
             summary = ""
             sents = [tup[0] for tup in entry.output]
@@ -177,4 +181,7 @@ class Postprocess(object):
                             break
                     new_sent = sent[index:]
                     summary += new_sent + " "
+
+            assert(len(nltk.word_tokenize(summary)) >= 100)
+
             entry.generated_sum = summary
