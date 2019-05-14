@@ -91,7 +91,6 @@ class TextRank(object):
         summary = ""
         sents = [tup[0] for tup in sorted_list]
         for sent in sents:
-            length = len(nltk.word_tokenize(sent))
             if count < 0:
                 break
             else:
@@ -101,10 +100,11 @@ class TextRank(object):
                         index = i
                         break
                 new_sent = sent[index:]
+                length = len(nltk.word_tokenize(new_sent))
                 summary += new_sent + " "
                 count -= length
 
-        assert(len(nltk.word_tokenize(summary)) >= 100)
+        assert(count >= 0 or len(nltk.word_tokenize(summary)) >= 100)
         return summary
 
     @staticmethod

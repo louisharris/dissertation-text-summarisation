@@ -87,7 +87,7 @@ class Preprocessing(object):
             new_sent.append("<PAD>")
 
         assert(len(new_sent) == max_sent_len)
-        exit()
+
         return new_sent
 
     @staticmethod

@@ -164,6 +164,8 @@ class Postprocess(object):
                     new_output.append(tup)
                     count -= length
 
+            assert(count < 0)
+
             entry.output = new_output
 
     def return_summaries(self):
@@ -173,14 +175,15 @@ class Postprocess(object):
             summary = ""
             sents = [tup[0] for tup in entry.output]
             for sent in sents:
-                if re.search('[a-zA-Z0-9]', sent) is not None:
-                    index = None
-                    for i in range(len(sent)):
-                        if sent[i].isalnum():
-                            index = i
-                            break
-                    new_sent = sent[index:]
-                    summary += new_sent + " "
+                # if re.search('[a-zA-Z0-9]', sent) is not None:
+                #     index = None
+                #     for i in range(len(sent)):
+                #         if sent[i].isalnum():
+                #             index = i
+                #             break
+                #     new_sent = sent[index:]
+                #     summary += new_sent + " "
+                summary += sent + " "
 
             assert(len(nltk.word_tokenize(summary)) >= 100)
 

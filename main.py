@@ -52,7 +52,6 @@ class Main(object):
             count = word_count
             summary = ""
             for sent in list:
-                length = len(nltk.word_tokenize(sent))
                 if count < 0:
                     break
                 else:
@@ -62,10 +61,10 @@ class Main(object):
                             index = i
                             break
                     new_sent = sent[index:]
+                    length = len(nltk.word_tokenize(new_sent))
                     summary += new_sent + " "
                     count -= length
 
-            assert(len(nltk.word_tokenize(summary)) >= word_count)
             return summary
 
         for e in test_entries:
